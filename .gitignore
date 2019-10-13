@@ -1,0 +1,8 @@
+indeed_scrape.csv
+indeed_scrape_working.csv
+config.py
+__pycache__/
+build/
+dist/
+venv/
+indeed_scraper.spec
