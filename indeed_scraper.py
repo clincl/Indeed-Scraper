@@ -20,7 +20,9 @@ search = input("Enter your indeed search: ")
 
 search = search.replace(' ','+')
 
-params = "&l=United+States&jt=internship&explvl=entry_level&start="
+# TODO: Need to change params to dict format for requests.get() argument.
+
+#params = "&l=United+States&jt=internship&explvl=entry_level&start="
 params = "&l=United+States&start="
 page = 0
 
