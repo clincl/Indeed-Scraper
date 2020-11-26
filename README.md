@@ -14,18 +14,17 @@ $ cd Indeed-Scraper
 ```
 
 ## Usage
-- Simply run the executeable by double clicking.
-- If you wish to run the python file directly:
-- Install by running:
+- You can run the indeed_scraper.exe executable directly.
+- Alternatively:
 ```shell
 $ pip install -r requirements.txt
 $ python indeed_scraper.py
 ```
-- You should see the following prompt:
-```shell
-Enter your indeed search:
-```
-- After entering your search, the program will compile the results into a csv file.
+- You will be prompted for:
+  - Pages (optional)
+  - Search (required)
+  - Location (optional)
+- You can also modify the indeed_parser.py file to avoid having to enter your queries through the command line.
 
 ## License
 
