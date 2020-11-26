@@ -137,10 +137,10 @@ def output_jobs(params, num_pages):
         page_url = get_page_url(params, page_num)
         if page_num == 0:
             page_cap = get_page_cap(page_url) if get_page_cap(page_url) < 100 else page_cap
-            # print("PAGE_CAP: ",page_cap)
+            print("PAGE_CAP: ", page_cap + 1, "(ORIGINAL CAP: ", get_page_cap(page_url) + 1, ")")
         if page_num > page_cap:
             break
-        # print(page_num + 1)
+        print("Writing page: ", page_num + 1)
         page_jobs = get_page_jobs(page_url)
         for job in page_jobs:
             counter += 1
