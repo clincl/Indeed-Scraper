@@ -1,7 +1,6 @@
 import csv
 import requests
 from bs4 import BeautifulSoup
-import config
 # https://www.indeed.com/jobs?q={search+query}&l={location}&start={10/1000}
 
 # Functions:
@@ -13,16 +12,20 @@ import config
 
 indeed = "https://www.indeed.com/jobs?q="
 
-#search = config.search
-#search = "summer intern"
+"""
+Returns search & location inputs
+"""
 def get_params():
     search = input("Enter your indeed search: ").replace(' ','+')
     location = input("Enter your location: ")
     location = ("") if (location == "") else (location.replace(' ','+'))
-    return (search, location)
-    
-# get_params (tuple)
-# page_num (int): starts from 0
+    return (search, location)    
+"""
+Input:
+params: get_params() (tuple)
+page_num: (int)
+Returns search page url
+"""
 def get_page_url(params,page_num):
     url = ""
     search = params[0]
@@ -34,17 +37,28 @@ def get_page_url(params,page_num):
     else:
         url = "https://www.indeed.com/jobs?q={search}&l={location}&start={page_num}".format(search = search, location = location, page_num=page_num)
     return url
+"""
+url: search page url
+Returns soup from  search page url
+"""
 def get_soup(url):
     url = requests.get(url).text
     soup = BeautifulSoup(url, 'lxml')
     return soup
+"""
+url: search page url
+Returns list of length (max: 15) containing jobs
+"""
 def get_page_jobs(url):
     soup = get_soup(url)
     #print(soup.prettify())
     jobs = soup.find_all('div', class_='jobsearch-SerpJobCard')
     return jobs
 
-# Parse Page x of y jobs. string
+"""
+page_str: 'Page x of y jobs.' string
+Returns x,y
+"""
 def page_cap_parser(page_str):
     page_str = page_str.strip()
     page_str = page_str[5:] #Parse out "Page "
@@ -70,7 +84,11 @@ def page_cap_parser(page_str):
                 break
     return x,y
             
-# Returns number of pages counting from 0
+"""
+url: search page url
+Calls page_cap_parser(page_str)
+Returns total number of pages counting from 0
+"""
 def get_page_cap(url):
     pages = get_soup(url).find(id="searchCountPages")
     if pages == None:
@@ -80,13 +98,57 @@ def get_page_cap(url):
         pages = pages.get_text()
         page_cap = ((page_cap_parser(pages)[1]//15))
         return page_cap
+    
 # Functions use job index in a a page
 def get_job_url(job):
     job_url = job.h2.a['href']
     if job_url == None:
         return ""
     else:
-        return "https://indeed.com" + job_url
+        print(job_url)
+        return "https://indeed.com" +job_url
+"""
+url: job listing url
+Returns original job application website
+i.e. lever/greenhouse/myworkday/url if None
+"""
+def get_orig_job_url(url):
+    soup = get_soup(url)
+    job_site = ""
+    # Check for redirect link
+    job_site = soup.find(id ="originalJobLinkContainer")
+    # Verify no redirect link (Apply directly on Indeed)
+    if job_site == None:
+        # print("No Url", url)
+        return "No Url"
+    else:
+        a_tags = job_site.find_all('a')
+        if a_tags != []:
+            return a_tags[0]['href']
+            # Too many requests made if original url is used.
+            # r = requests.get(a_tags[0]['href']).url
+            # # print(r.url)
+            # return r
+        else:
+            # print("FAILED",url)
+            return "FAILED"
+"""
+url: orig_url
+Parse url string to determine other(0) lever(1), greenhouse(2), myworkday(3)
+Return url type
+"""
+def get_url_type(url):
+    if "lever.co" in url:
+        return "Lever"
+    elif "greenhouse.io" in url:
+        return "Greenhouse"
+    elif "myworkdayjobs.com" in url:
+        return "Myworkdayjob"
+    else:
+        return "Other"
+"""
+Functions parsed from job search url
+"""
 def get_job_title(job):
     job_title = job.h2.a['title']
     if job_title == None:
@@ -129,7 +191,7 @@ def output_jobs(params, num_pages):
     # Encode to utf-8 to avoid UnicodeEncodeErrors
     csv_file = open('indeed_jobs.csv','w', encoding='utf-8', newline='')
     csv_writer = csv.writer(csv_file)
-    csv_writer.writerow(['counter','url','title','company','location','salary','description'])
+    csv_writer.writerow(['num','url','orig_url','url_type','title','company','location','salary','description'])
     counter = 0
     page_holder = ""
     page_cap = 99
@@ -145,14 +207,15 @@ def output_jobs(params, num_pages):
         for job in page_jobs:
             counter += 1
             url = get_job_url(job)
+            orig_url = get_orig_job_url(url)
+            url_type = get_url_type(orig_url)
             title = get_job_title(job)
             company = get_job_company(job)
             location = get_job_location(job)
             salary = get_job_salary(job)
             description = get_job_desc(job)
             # print([counter,url,title,company,location,salary,description])
-            csv_writer.writerow([counter,url,title,company,location,salary,description])
-                
+            csv_writer.writerow([counter,url,orig_url,url_type,title,company,location,salary,description])
     csv_file.close()
     
 def main():
@@ -183,5 +246,5 @@ def main():
     output_jobs(params, num_pages)
     print("Finished creating csv file with job listings.\n")
 
-
-main()
+if __name__ == "__main__":
+    main()
