@@ -1,5 +1,7 @@
 import csv
 import requests
+import time
+from datetime import datetime
 from bs4 import BeautifulSoup
 # https://www.indeed.com/jobs?q={search+query}&l={location}&start={10/1000}
 
@@ -49,8 +51,7 @@ def get_soup(url):
 url: search page url
 Returns list of length (max: 15) containing jobs
 """
-def get_page_jobs(url):
-    soup = get_soup(url)
+def get_page_jobs(soup):
     #print(soup.prettify())
     jobs = soup.find_all('div', class_='jobsearch-SerpJobCard')
     return jobs
@@ -89,8 +90,8 @@ url: search page url
 Calls page_cap_parser(page_str)
 Returns total number of pages counting from 0
 """
-def get_page_cap(url):
-    pages = get_soup(url).find(id="searchCountPages")
+def get_page_cap(soup):
+    pages = soup.find(id="searchCountPages")
     if pages == None:
         "No \"searchCountPages\" found. One or less pages.\n Ending program.\n"
         return 0
@@ -105,7 +106,7 @@ def get_job_url(job):
     if job_url == None:
         return ""
     else:
-        print(job_url)
+        # print(job_url)
         return "https://indeed.com" +job_url
 """
 url: job listing url
@@ -126,9 +127,10 @@ def get_orig_job_url(url):
         if a_tags != []:
             return a_tags[0]['href']
             # Too many requests made if original url is used.
-            # r = requests.get(a_tags[0]['href']).url
+            # But original url is needed to parse csv for url_type.
+            r = requests.get(a_tags[0]['href']).url
             # # print(r.url)
-            # return r
+            return r
         else:
             # print("FAILED",url)
             return "FAILED"
@@ -137,6 +139,7 @@ url: orig_url
 Parse url string to determine other(0) lever(1), greenhouse(2), myworkday(3)
 Return url type
 """
+# Doesn't work unless get_orig_job_url(url) sends a request
 def get_url_type(url):
     if "lever.co" in url:
         return "Lever"
@@ -189,7 +192,11 @@ def get_job_desc(job):
 # Outputs to csv
 def output_jobs(params, num_pages):
     # Encode to utf-8 to avoid UnicodeEncodeErrors
-    csv_file = open('indeed_jobs.csv','w', encoding='utf-8', newline='')
+    # Name the file based on the search query and current time
+    now = datetime.now()
+    current_time = now.strftime("%H:%M:%S").replace(':','')
+    csv_file_name = params[0] + current_time+'.csv'
+    csv_file = open(csv_file_name, 'w+', encoding='utf-8', newline='')
     csv_writer = csv.writer(csv_file)
     csv_writer.writerow(['num','url','orig_url','url_type','title','company','location','salary','description'])
     counter = 0
@@ -197,13 +204,14 @@ def output_jobs(params, num_pages):
     page_cap = 99
     for page_num in range(num_pages):
         page_url = get_page_url(params, page_num)
+        soup = get_soup(page_url)
         if page_num == 0:
-            page_cap = get_page_cap(page_url) if get_page_cap(page_url) < 100 else page_cap
-            print("PAGE_CAP: ", page_cap + 1, "(ORIGINAL CAP: ", get_page_cap(page_url) + 1, ")")
+            page_cap = get_page_cap(soup) if get_page_cap(soup) < 100 else page_cap
+            print("PAGE_CAP: ", page_cap + 1, "(ORIGINAL CAP: ", get_page_cap(soup) + 1, ")")
         if page_num > page_cap:
             break
         print("Writing page: ", page_num + 1)
-        page_jobs = get_page_jobs(page_url)
+        page_jobs = get_page_jobs(soup)
         for job in page_jobs:
             counter += 1
             url = get_job_url(job)
